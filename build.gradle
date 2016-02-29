@@ -25,6 +25,7 @@ jar {
 
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
 import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
+import com.bmuschko.gradle.docker.tasks.container.DockerStartContainer
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -100,5 +101,23 @@ task buildCouchImage(type: DockerBuildImage) {
 task createCouchContainer(type: DockerCreateContainer) {
 	dependsOn buildCouchImage
 	targetImageId { buildCouchImage.getImageId() }
+	containerName = 'couch'
+}
+
+task createAppContainer(type: DockerCreateContainer) {
+	dependsOn createCouchContainer
+	targetImageId { buildAppImage.getImageId() }
+	links = ["${createCouchContainer.getContainerName()}:couch"]
 	portBindings = ['8080:8080']
+	containerName = 'app'
+}
+
+task startCouchContainer(type: DockerStartContainer) {
+	dependsOn createAppContainer
+	targetContainerId { createCouchContainer.getContainerId() }
+}
+
+task dockerStartAll(type: DockerStartContainer) {
+	dependsOn startCouchContainer
+	targetContainerId { createAppContainer.getContainerId() }
 }
